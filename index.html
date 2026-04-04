@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="classic">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inkroot | Where local voices take root</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    /* CSS Custom Properties for Themes */
+    :root[data-theme="classic"] {
+      --bg: #F4F1EA;
+      --text: #2C302E;
+      --accent: #7B2D26;
+      --accent-secondary: #C9A96E;
+      --surface: #EDE9DF;
+      --border: #D4CCBA;
+      --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+    }
+    :root[data-theme="midnight"] {
+      --bg: #0F0E0D;
+      --text: #E8E4D9;
+      --accent: #C4524A;
+      --accent-secondary: #C9A96E;
+      --surface: #1A1917;
+      --border: #2E2B27;
+      --paper-texture: none;
+    }
+    :root[data-theme="coffeehouse"] {
+      --bg: #2C1A0E;
+      --text: #F0E6D3;
+      --accent: #D4845A;
+      --accent-secondary: #A0785A;
+      --surface: #3D2614;
+      --border: #5C3D22;
+      --paper-texture: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .font-playfair { font-family: 'Playfair Display', serif; }
+
+    .bg-surface { background-color: var(--surface); background-image: var(--paper-texture); }
+    .text-accent { color: var(--accent); }
+    .bg-accent { background-color: var(--accent); }
+    .border-accent { border-color: var(--accent); }
+    .border-custom { border-color: var(--border); }
+
+    .nav-item { border-left: 3px solid transparent; transition: all 0.2s; }
+    .nav-item:hover, .nav-item.active { border-left-color: var(--accent-secondary); background-color: rgba(255,255,255,0.05); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
+
+    /* Toast Animation */
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .toast-enter { animation: slideUp 0.3s ease-out forwards; }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+  <!-- Mobile Nav Toggle -->
+  <button id="mobile-menu-btn" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-surface rounded-md border border-custom">☰</button>
+
+  <!-- The Book Spine (Sidebar) -->
+  <aside id="sidebar" class="w-64 bg-accent text-white flex flex-col h-full fixed md:relative z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 shadow-xl">
+    <div class="p-6 border-b border-white/10">
+      <h1 class="text-3xl font-playfair font-bold tracking-wider">Inkroot</h1>
+      <p class="text-xs mt-2 opacity-80 font-playfair italic">Where local voices take root.</p>
+    </div>
+    
+    <nav class="flex-1 overflow-y-auto py-4 flex flex-col">
+      <a href="#/feed" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">📖</span> Feed</a>
+      <a href="#/write" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">✍️</span> Writer's Desk</a>
+      <a href="#/map" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">🗺️</span> Literary Map</a>
+      <a href="#/editors" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">🏛️</span> Editors</a>
+      <a href="#/spark" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">💡</span> Spark Box</a>
+      <a href="#/leaderboard" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10"><span class="text-xl">🏆</span> Leaderboard</a>
+      <a href="#/profile/me" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10 hidden auth-required"><span class="text-xl">👤</span> My Profile</a>
+      <a href="#/settings" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10 hidden auth-required"><span class="text-xl">⚙️</span> Settings</a>
+      <a href="#/admin" class="nav-item px-6 py-3 flex items-center gap-3 border-b border-white/10 hidden admin-only"><span class="text-xl">🛡️</span> Admin Dashboard</a>
+      
+      <button id="sprint-btn" class="mt-4 mx-4 py-2 bg-white/10 rounded-md hover:bg-white/20 transition-colors flex items-center justify-center gap-2">
+        <span>⏱️</span> Start Sprint
+      </button>
+    </nav>
+
+    <div class="p-6 border-t border-white/10">
+      <button id="theme-toggle" class="w-full py-2 text-sm bg-white/10 rounded hover:bg-white/20 transition-colors mb-4">🌗 Toggle Theme</button>
+      <div id="auth-section">
+        <button id="login-btn" class="w-full py-2 bg-white text-accent font-medium rounded hover:bg-gray-100 transition-colors">Log In / Sign Up</button>
+        <button id="logout-btn" class="w-full py-2 bg-white/10 text-white font-medium rounded hover:bg-white/20 transition-colors hidden">Log Out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+    <header class="h-16 border-b border-custom flex items-center justify-end px-6 bg-surface/80 backdrop-blur-sm z-10">
+      <div class="flex items-center gap-4">
+        <button id="notifications-btn" class="relative p-2 hover:bg-black/5 rounded-full transition-colors hidden auth-required">
+          🔔 <span id="notif-badge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+        </button>
+        <div id="user-header-info" class="hidden items-center gap-2 auth-required">
+          <span id="user-points" class="text-sm font-medium text-accent">0 pts</span>
+          <div id="user-avatar" class="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold"></div>
+        </div>
+      </div>
+    </header>
+
+    <div id="app-content" class="flex-1 overflow-y-auto p-4 md:p-8 max-w-[860px] mx-auto w-full">
+      <!-- Content injected here by router -->
+    </div>
+
+    <footer class="py-4 text-center text-sm opacity-60 border-t border-custom">
+      Curated by Faez Ahmad
+    </footer>
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+  <!-- Supabase JS & Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    // Replace these with your actual values from supabase.com
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.currentUser = null;
+    window.userData = null;
+
+    // --- Theme Logic ---
+    const themes = ['classic', 'midnight', 'coffeehouse'];
+    let currentThemeIndex = themes.indexOf(localStorage.getItem('inkroot_theme') || 'classic');
+    if(currentThemeIndex === -1) currentThemeIndex = 0;
+    document.documentElement.setAttribute('data-theme', themes[currentThemeIndex]);
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+      const newTheme = themes[currentThemeIndex];
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('inkroot_theme', newTheme);
+    });
+
+    // --- Mobile Menu Logic ---
+    const sidebar = document.getElementById('sidebar');
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+
+    // --- Auth Logic ---
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    loginBtn.addEventListener('click', async () => {
+      const email = prompt("Enter email:");
+      const password = prompt("Enter password:");
+      if (!email || !password) return;
+      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        // If sign in fails, try sign up
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) alert(signUpError.message);
+        else alert("Check your email for confirmation!");
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+    });
+
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      window.currentUser = session?.user || null;
+      const authEls = document.querySelectorAll('.auth-required');
+      const adminEls = document.querySelectorAll('.admin-only');
+      
+      if (window.currentUser) {
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        authEls.forEach(el => el.classList.remove('hidden'));
+        
+        // Fetch user data
+        const { data } = await supabase.from('users').select('*').eq('id', window.currentUser.id).single();
+        if (data) {
+          window.userData = data;
+          document.getElementById('user-points').innerText = `${data.lighthouse_points} pts`;
+          document.getElementById('user-avatar').innerText = (data.display_name || data.email).charAt(0).toUpperCase();
+          if (data.role === 'admin') adminEls.forEach(el => el.classList.remove('hidden'));
+        } else {
+          // Auto-create user record on first login
+          await supabase.from('users').insert([{ id: window.currentUser.id, email: window.currentUser.email }]);
+        }
+
+        // Subscribe to notifications
+        supabase.channel('notifications')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${window.currentUser.id}` }, payload => {
+            document.getElementById('notif-badge').classList.remove('hidden');
+            // Show toast (defined in Output 3)
+            if(window.showToast) window.showToast("New Notification", payload.new.message);
+          }).subscribe();
+
+      } else {
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        authEls.forEach(el => el.classList.add('hidden'));
+        adminEls.forEach(el => el.classList.add('hidden'));
+        window.userData = null;
+      }
+      handleRoute(); // Re-render current route
+    });
+
+    // --- Router Logic ---
+    const contentDiv = document.getElementById('app-content');
+    
+    const routes = {
+      '#/feed': renderFeed,
+      '#/write': renderWrite,
+      '#/map': renderMap,
+      '#/admin': renderAdmin
+    };
+
+    async function handleRoute() {
+      const hash = window.location.hash || '#/feed';
+      const route = routes[hash] || renderFeed;
+      
+      // Update active nav state
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const activeNav = document.querySelector(`.nav-item[href="${hash}"]`);
+      if(activeNav) activeNav.classList.add('active');
+
+      contentDiv.innerHTML = '<div class="flex justify-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div></div>';
+      await route();
+    }
+
+    window.addEventListener('hashchange', handleRoute);
+    window.addEventListener('DOMContentLoaded', handleRoute);
+
+    // --- Route Renderers (Core Implementations) ---
+    async function renderFeed() {
+      const { data: works, error } = await supabase.from('works').select('*, users(display_name, city)').eq('status', 'published').order('created_at', { ascending: false }).limit(10);
+      
+      let html = `<div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-playfair font-bold">The Feed</h2>
+        <div class="bg-surface rounded-full p-1 border border-custom flex text-sm">
+          <button class="px-4 py-1 rounded-full bg-accent text-white">🌍 Global</button>
+          <button class="px-4 py-1 rounded-full hover:bg-black/5">📍 Local</button>
+        </div>
+      </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+
+      if (works && works.length > 0) {
+        works.forEach(work => {
+          html += `
+            <div class="bg-surface p-6 rounded-xl border border-custom shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+              <div class="absolute top-0 left-0 w-full h-1 bg-accent"></div>
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-medium px-2 py-1 bg-black/5 rounded text-accent">${work.genre || 'Story'}</span>
+                <span class="text-xs opacity-60">${work.word_count || 0} words</span>
+              </div>
+              <h3 class="text-xl font-playfair font-bold mb-1">${work.title}</h3>
+              <p class="text-sm opacity-70 mb-4">By ${work.users?.display_name || 'Anonymous'} • ${work.users?.city || 'Unknown'}</p>
+              <p class="text-sm mb-6 line-clamp-3">${work.content.substring(0, 150)}...</p>
+              <div class="flex justify-between items-center">
+                <span class="text-xs px-2 py-1 rounded-full ${work.feedback_mode === 'cheer' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}">
+                  ${work.feedback_mode === 'cheer' ? '🎉 Cheer Me On' : '🔍 Critique Requested'}
+                </span>
+                <button onclick="window.generateQuoteCard('${work.title.replace(/'/g, "\\'")}', '${work.content.substring(0, 100).replace(/'/g, "\\'")}', '${work.users?.display_name || 'Anonymous'}', '${work.users?.city || ''}')" class="text-accent hover:underline text-sm font-medium">Share Quote</button>
+              </div>
+            </div>`;
+        });
+      } else {
+        html += `<p class="col-span-2 text-center opacity-60 py-12">No works published yet. Be the first!</p>`;
+      }
+      html += `</div>`;
+      contentDiv.innerHTML = html;
+    }
+
+    async function renderWrite() {
+      if (!window.currentUser) {
+        contentDiv.innerHTML = `<div class="text-center py-20"><h2 class="text-2xl font-playfair mb-4">Please log in to write.</h2></div>`;
+        return;
+      }
+      contentDiv.innerHTML = `
+        <div class="max-w-3xl mx-auto bg-surface p-8 rounded-xl border border-custom shadow-sm min-h-[70vh] flex flex-col">
+          <input type="text" id="write-title" placeholder="Title" class="w-full bg-transparent text-4xl font-playfair font-bold border-none outline-none mb-6 placeholder-black/20">
+          <div class="flex gap-4 mb-6 border-b border-custom pb-4">
+            <select id="write-genre" class="bg-transparent border border-custom rounded px-3 py-1 text-sm outline-none"><option>Fiction</option><option>Poetry</option><option>Essay</option></select>
+            <select id="write-feedback" class="bg-transparent border border-custom rounded px-3 py-1 text-sm outline-none"><option value="cheer">🎉 Cheer Me On</option><option value="critique">🔍 Critique Requested</option></select>
+          </div>
+          <textarea id="write-content" placeholder="Start writing..." class="w-full flex-1 bg-transparent border-none outline-none resize-none font-inter leading-relaxed"></textarea>
+          <div class="flex justify-between items-center mt-6 pt-4 border-t border-custom">
+            <span id="word-count" class="text-sm opacity-60">0 words</span>
+            <button id="publish-btn" class="px-6 py-2 bg-accent text-white rounded font-medium hover:bg-accent/90 transition-colors">Publish</button>
+          </div>
+        </div>
+      `;
+
+      const contentArea = document.getElementById('write-content');
+      const wordCount = document.getElementById('word-count');
+      contentArea.addEventListener('input', () => {
+        const words = contentArea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+        wordCount.innerText = `${words} words`;
+      });
+
+      document.getElementById('publish-btn').addEventListener('click', async () => {
+        const title = document.getElementById('write-title').value;
+        const content = contentArea.value;
+        const genre = document.getElementById('write-genre').value;
+        const feedback = document.getElementById('write-feedback').value;
+        const words = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+        if (!title || !content) return alert("Title and content required.");
+
+        const { error } = await supabase.from('works').insert([{
+          author_id: window.currentUser.id,
+          title, content, genre, word_count: words, status: 'published', feedback_mode: feedback
+        }]);
+
+        if (error) alert(error.message);
+        else {
+          window.location.hash = '#/feed';
+          if(window.awardLighthousePoints) window.awardLighthousePoints(window.currentUser.id, 'publish_work', null);
+        }
+      });
+    }
+
+    async function renderMap() {
+      contentDiv.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-3xl font-playfair font-bold">Literary Map</h2>
+          <button id="add-pin-btn" class="px-4 py-2 bg-accent text-white rounded font-medium hidden auth-required">+ Add Pin</button>
+        </div>
+        <div id="map-container" class="w-full h-[600px] rounded-xl border border-custom z-0"></div>
+      `;
+      
+      if(window.currentUser) document.getElementById('add-pin-btn').classList.remove('hidden');
+
+      // Initialize Leaflet
+      const map = L.map('map-container').setView([30.3753, 69.3451], 5); // Default to Pakistan
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+      // Try Geolocation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          map.setView([pos.coords.latitude, pos.coords.longitude], 13);
+        });
+      }
+
+      // Fetch Pins
+      const { data: pins } = await supabase.from('map_pins').select('*, users(display_name)');
+      if (pins) {
+        pins.forEach(pin => {
+          const color = pin.type === 'cafe' ? 'orange' : pin.type === 'bookstore' ? 'red' : 'blue';
+          const markerHtml = `<div style="background-color:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>`;
+          const icon = L.divIcon({ html: markerHtml, className: '' });
+          L.marker([pin.lat, pin.lng], { icon }).addTo(map)
+            .bindPopup(`<b>${pin.name}</b><br><span class="text-xs uppercase opacity-70">${pin.type}</span><br><p class="mt-1">${pin.description || ''}</p><small class="opacity-50">Added by ${pin.users?.display_name || 'Anonymous'}</small>`);
+        });
+      }
+
+      document.getElementById('add-pin-btn').addEventListener('click', () => {
+        alert("Click on the map to place your pin.");
+        map.once('click', async (e) => {
+          const name = prompt("Location Name:");
+          if(!name) return;
+          const type = prompt("Type (cafe, bookstore, event):", "cafe");
+          const desc = prompt("Description:");
+          
+          const { error } = await supabase.from('map_pins').insert([{
+            user_id: window.currentUser.id, name, type, lat: e.latlng.lat, lng: e.latlng.lng, description: desc
+          }]);
+          if(!error) renderMap(); // Reload map
+        });
+      });
+    }
+
+    async function renderAdmin() {
+      if (!window.userData || window.userData.role !== 'admin') {
+        window.location.hash = '#/feed';
+        return;
+      }
+      contentDiv.innerHTML = `<div class="bg-surface p-8 rounded-xl border border-custom"><h2 class="text-3xl font-playfair font-bold mb-2">Admin Dashboard</h2><p class="opacity-70 mb-8">Curated by Faez Ahmad</p><p>Admin controls go here (Moderation Queue, User Management, etc).</p></div>`;
+    }
+  </script>
+</body>
+</html>
+<script>
+class SprintTimer {
+  constructor() {
+    this.state = 'IDLE'; // IDLE, RUNNING, PAUSED, COMPLETED
+    this.timeLeft = 0;
+    this.totalTime = 0;
+    this.interval = null;
+    this.container = document.getElementById('sprint-modal-container');
+    this.renderModal();
+    this.bindEvents();
+  }
+
+  renderModal() {
+    this.container.innerHTML = `
+      <div id="sprint-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-surface p-8 rounded-2xl border border-custom shadow-2xl w-full max-w-md relative">
+          <button id="sprint-close" class="absolute top-4 right-4 opacity-50 hover:opacity-100">✕</button>
+          <h2 class="text-2xl font-playfair font-bold text-center mb-6">Writer's Sprint</h2>
+          
+          <!-- SVG Circle Timer -->
+          <div class="relative w-48 h-48 mx-auto mb-8">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--border)" stroke-width="4" />
+              <circle id="sprint-circle" cx="50" cy="50" r="45" fill="none" stroke="var(--accent)" stroke-width="4" stroke-dasharray="283" stroke-dashoffset="0" class="transition-all duration-1000 linear" />
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center flex-col">
+              <span id="sprint-time" class="text-4xl font-mono font-bold">00:00</span>
+              <span id="sprint-status" class="text-xs uppercase tracking-widest opacity-60 mt-1">Ready</span>
+            </div>
+          </div>
+
+          <div id="sprint-controls" class="flex flex-wrap justify-center gap-2 mb-6">
+            <button class="sprint-preset px-3 py-1 rounded bg-black/5 hover:bg-black/10 text-sm" data-min="10">10m</button>
+            <button class="sprint-preset px-3 py-1 rounded bg-black/5 hover:bg-black/10 text-sm" data-min="15">15m</button>
+            <button class="sprint-preset px-3 py-1 rounded bg-black/5 hover:bg-black/10 text-sm" data-min="25">25m</button>
+            <button class="sprint-preset px-3 py-1 rounded bg-black/5 hover:bg-black/10 text-sm" data-min="45">45m</button>
+          </div>
+
+          <div class="flex justify-center gap-4">
+            <button id="sprint-action-btn" class="px-8 py-3 bg-accent text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all w-full">Start Sprint</button>
+          </div>
+          
+          <div id="sprint-complete-ui" class="hidden mt-6 text-center border-t border-custom pt-6">
+            <h3 class="font-playfair font-bold text-xl mb-2">Sprint Complete!</h3>
+            <input type="number" id="sprint-words" placeholder="Words written?" class="w-full bg-transparent border border-custom rounded px-4 py-2 mb-4 text-center">
+            <button id="sprint-log-btn" class="px-6 py-2 bg-accent text-white rounded w-full">Log & Claim Points</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  bindEvents() {
+    document.getElementById('sprint-btn').addEventListener('click', () => {
+      document.getElementById('sprint-modal').classList.remove('hidden');
+    });
+    document.getElementById('sprint-close').addEventListener('click', () => {
+      document.getElementById('sprint-modal').classList.add('hidden');
+    });
+
+    document.querySelectorAll('.sprint-preset').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if(this.state === 'RUNNING') return;
+        const mins = parseInt(e.target.dataset.min);
+        this.totalTime = mins * 60;
+        this.timeLeft = this.totalTime;
+        this.updateDisplay();
+      });
+    });
+
+    document.getElementById('sprint-action-btn').addEventListener('click', () => {
+      if (this.state === 'IDLE' || this.state === 'PAUSED') {
+        if(this.timeLeft === 0) this.timeLeft = 25 * 60; // Default 25m
+        this.totalTime = this.state === 'IDLE' ? this.timeLeft : this.totalTime;
+        this.start();
+      } else if (this.state === 'RUNNING') {
+        this.pause();
+      }
+    });
+
+    document.getElementById('sprint-log-btn').addEventListener('click', () => {
+      const words = document.getElementById('sprint-words').value;
+      if(window.currentUser && window.awardLighthousePoints) {
+        window.awardLighthousePoints(window.currentUser.id, 'sprint_complete', null);
+      }
+      this.reset();
+      document.getElementById('sprint-modal').classList.add('hidden');
+    });
+  }
+
+  start() {
+    this.state = 'RUNNING';
+    document.getElementById('sprint-action-btn').innerText = 'Pause';
+    document.getElementById('sprint-status').innerText = 'Writing...';
+    document.getElementById('sprint-controls').classList.add('opacity-50', 'pointer-events-none');
+    document.getElementById('sprint-complete-ui').classList.add('hidden');
+    
+    this.interval = setInterval(() => this.tick(), 1000);
+  }
+
+  pause() {
+    this.state = 'PAUSED';
+    document.getElementById('sprint-action-btn').innerText = 'Resume';
+    document.getElementById('sprint-status').innerText = 'Paused';
+    clearInterval(this.interval);
+  }
+
+  reset() {
+    this.state = 'IDLE';
+    this.timeLeft = 0;
+    clearInterval(this.interval);
+    this.updateDisplay();
+    document.getElementById('sprint-action-btn').innerText = 'Start Sprint';
+    document.getElementById('sprint-status').innerText = 'Ready';
+    document.getElementById('sprint-controls').classList.remove('opacity-50', 'pointer-events-none');
+    document.getElementById('sprint-complete-ui').classList.add('hidden');
+  }
+
+  tick() {
+    if (this.timeLeft > 0) {
+      this.timeLeft--;
+      this.updateDisplay();
+    } else {
+      this.complete();
+    }
+  }
+
+  updateDisplay() {
+    const m = Math.floor(this.timeLeft / 60).toString().padStart(2, '0');
+    const s = (this.timeLeft % 60).toString().padStart(2, '0');
+    document.getElementById('sprint-time').innerText = `${m}:${s}`;
+
+    const circle = document.getElementById('sprint-circle');
+    const circumference = 2 * Math.PI * 45; // 283
+    const offset = this.totalTime > 0 ? circumference - (this.timeLeft / this.totalTime) * circumference : 0;
+    circle.style.strokeDashoffset = offset;
+  }
+
+  complete() {
+    clearInterval(this.interval);
+    this.state = 'COMPLETED';
+    document.getElementById('sprint-status').innerText = 'Done!';
+    document.getElementById('sprint-action-btn').innerText = 'Start New';
+    document.getElementById('sprint-controls').classList.remove('opacity-50', 'pointer-events-none');
+    document.getElementById('sprint-complete-ui').classList.remove('hidden');
+    
+    // Play a subtle browser beep
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => osc.stop(), 200);
+  }
+}
+
+// Initialize when DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+  window.sprintTimer = new SprintTimer();
+});
+</script>
+<script>
+// Point Values Map
+const POINT_VALUES = {
+  'social_share': 15,
+  'share_read': 5,
+  'spark_response': 10,
+  'sample_exchange': 25,
+  'receive_comments': 20,
+  'featured': 30,
+  'sprint_complete': 5
+};
+
+const TIERS = [
+  { max: 49, name: "Seedling", emoji: "🌱" },
+  { max: 149, name: "Lantern", emoji: "🏮" },
+  { max: 349, name: "Lighthouse Keeper", emoji: "🏠" },
+  { max: 699, name: "Beacon", emoji: "🌟" },
+  { max: Infinity, name: "Luminary", emoji: "💡" }
+];
+
+window.showToast = function(title, message) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'bg-surface border border-custom shadow-lg rounded-lg p-4 w-72 toast-enter relative overflow-hidden';
+  toast.innerHTML = `
+    <div class="absolute left-0 top-0 bottom-0 w-1 bg-accent"></div>
+    <h4 class="font-playfair font-bold text-lg">${title}</h4>
+    <p class="text-sm opacity-80">${message}</p>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+};
+
+window.checkTierUnlock = function(oldPoints, newPoints) {
+  const oldTier = TIERS.find(t => oldPoints <= t.max);
+  const newTier = TIERS.find(t => newPoints <= t.max);
+  if (oldTier.name !== newTier.name) {
+    window.showToast(`Tier Unlocked: ${newTier.name} ${newTier.emoji}`, `Congratulations! You've reached a new Lighthouse tier.`);
+  }
+};
+
+window.awardLighthousePoints = async function(userId, actionType, targetId = null) {
+  if (!window.supabase) return;
+  const points = POINT_VALUES[actionType] || 0;
+  if (points === 0) return;
+
+  // 1. Insert Event
+  await window.supabase.from('lighthouse_events').insert([{
+    user_id: userId, action_type: actionType, points_earned: points, target_id: targetId
+  }]);
+
+  // 2. Increment via RPC
+  const { data: newTotal, error } = await window.supabase.rpc('increment_lighthouse_points', {
+    user_id: userId, amount: points
+  });
+
+  if (!error && newTotal !== null) {
+    const oldPoints = newTotal - points;
+    window.checkTierUnlock(oldPoints, newTotal);
+    
+    // Update UI if it's the current user
+    if (window.currentUser && window.currentUser.id === userId) {
+      document.getElementById('user-points').innerText = `${newTotal} pts`;
+      window.showToast(`+${points} Points`, `Earned for: ${actionType.replace('_', ' ')}`);
+    }
+  }
+};
+
+window.generateQuoteCard = function(title, excerpt, authorName, city) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 630;
+  const ctx = canvas.getContext('2d');
+
+  // Background (Parchment Cream)
+  ctx.fillStyle = '#F4F1EA';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Border (Bookbinders Burgundy)
+  ctx.strokeStyle = '#7B2D26';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+  // Excerpt Text (Playfair Display fallback)
+  ctx.fillStyle = '#2C302E';
+  ctx.font = 'italic 48px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // Simple word wrap
+  const words = `"${excerpt}"`.split(' ');
+  let line = '';
+  let y = canvas.height / 2 - 60;
+  const maxWidth = 900;
+
+  for(let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      ctx.fillText(line, canvas.width / 2, y);
+      line = words[n] + ' ';
+      y += 60;
+    } else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line, canvas.width / 2, y);
+
+  // Author & Branding
+  ctx.font = 'bold 32px Georgia, serif';
+  ctx.fillStyle = '#7B2D26';
+  ctx.textAlign = 'right';
+  ctx.fillText(`— ${authorName}`, canvas.width - 80, canvas.height - 120);
+  
+  ctx.font = '24px Arial, sans-serif';
+  ctx.fillStyle = '#C9A96E';
+  ctx.fillText(`Inkroot • ${city}`, canvas.width - 80, canvas.height - 80);
+
+  // Download Image
+  const dataUrl = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.download = `inkroot-quote-${Date.now()}.png`;
+  link.href = dataUrl;
+  link.click();
+
+  // Trigger Share Intent
+  const shareUrl = encodeURIComponent(window.location.origin + window.location.pathname + `?ref=share&uid=${window.currentUser?.id || ''}`);
+  const text = encodeURIComponent(`"${excerpt.substring(0, 100)}..." — ${authorName} on Inkroot. Read more: `);
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${shareUrl}&hashtags=Inkroot,LocalWriters`, '_blank');
+
+  // Award Points
+  if (window.currentUser) {
+    window.awardLighthousePoints(window.currentUser.id, 'social_share');
+  }
+};
+
+// Check for share read on load
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refUid = urlParams.get('uid');
+  if (urlParams.get('ref') === 'share' && refUid) {
+    // Award points to the person who shared it (refUid)
+    // In a real app, ensure we don't award points if the user clicks their own link
+    if (!window.currentUser || window.currentUser.id !== refUid) {
+      window.awardLighthousePoints(refUid, 'share_read');
+    }
+  }
+});
+</script>
