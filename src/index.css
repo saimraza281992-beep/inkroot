@@ -1,58 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-bg: var(--bg);
-  --color-text: var(--text);
-  --color-accent: var(--accent);
-  --color-accent-secondary: var(--accent-secondary);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --font-playfair: 'Playfair Display', serif;
-  --font-inter: 'Inter', sans-serif;
+  --color-bg: #F4F1EA;
+  --color-text: #2C302E;
+  --color-accent: #7B2D26;
+  --color-accent2: #C9A96E;
+  --color-surface: #EDE9DF;
+  --color-border: #D4CCBA;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
 }
 
 @layer base {
-  :root {
-    --bg: #F4F1EA;
-    --text: #2C302E;
-    --accent: #7B2D26;
-    --accent-secondary: #C9A96E;
-    --surface: #EDE9DF;
-    --border: #D4CCBA;
-  }
-  .theme-midnight {
-    --bg: #0F0E0D;
-    --text: #E8E4D9;
-    --accent: #C4524A;
-    --accent-secondary: #C9A96E;
-    --surface: #1A1917;
-    --border: #2E2B27;
-  }
-  .theme-coffeehouse {
-    --bg: #2C1A0E;
-    --text: #F0E6D3;
-    --accent: #D4845A;
-    --accent-secondary: #A0785A;
-    --surface: #3D2614;
-    --border: #5C3D22;
-  }
-  
   body {
-    background-color: var(--bg);
-    color: var(--text);
-    font-family: var(--font-inter);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    @apply bg-bg text-text font-sans antialiased;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-playfair);
+    @apply font-serif;
   }
 }
-
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
-
